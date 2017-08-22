@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="UTF-8">
+		<title>贪吃蛇</title>
+	</head>
+
+	<body>
+	</body>
+	<script type="text/javascript">
+		function Game(document) {
+			//地图
+			this.gameMap = null;
+			//总列数
+			this.col = 40;
+			//总行数
+			this.row = 20;
+			//每一个方块的大小
+			this.block = 20;
+			//蛇的数组信息
+			this.snake = [[null,0,0,'green'],[null,1,0,'green'],[null,2,0,'red']];
+			//蛇的移动方向
+			this.dir = 'down';
+			//食物的信息
+			this.food = [null,0,0,'green'];
+			//游戏定时器
+			this.timer = 0;
+			//是否可以控制
+			this.isMove = true;
+			//游戏初始化
+			this.Init(document);
+		}
+		Game.prototype = {
+			Init: function(document) {
+				//初始化一个地图
+				this.gameMap = document.createElement('div');
+				this.gameMap.style.width = this.col * this.block + 'px';
+				this.gameMap.style.height = this.row * this.block + 'px';
+				this.gameMap.style.margin = '0 auto';
+				this.gameMap.style.backgroundColor = '#ccc';
+				this.gameMap.style.position = 'relative';
+				document.body.appendChild(this.gameMap);
+				this.showFood();
+				this.showSnake();
+			},
+			showFood: function() {
+				//当前位置可以放食物
+				var seat = true;
+				//随机食物的位置
+				this.food[1] = Math.floor(Math.random()*this.col);
+				this.food[2] = Math.floor(Math.random()*this.row);
+				//食物不能随机在蛇的身体上，开始一个死循环做判断
+				while(true){
+					//默认当前位置可以放食物
+					seat = true;
+					for(var i = 0; i < this.snake.length; i++){
+						if(this.food[1] === this.snake[i][1] && this.food[2] === this.snake[i][2]){
+							//如果当前位置和蛇的位置有重复说明当前不能放置食物
+							seat = false;
+							//重新随机一个位置
+							this.food[1] = Math.floor(Math.random()*this.col);
+							this.food[2] = Math.floor(Math.random()*this.row);
+							//并且跳出当前for循环
+							break;
+						}
+					}
+					if(seat){
+						//如果代码执行到这里并且seat依然为true则说明食物的位置没有重复可以放置食物并跳出这个死循环
+						break;
+					}
+				}
+				//生成食物
+				this.food[0] = document.createElement('div');
+				this.food[0].style.width = this.food[0].style.height = this.block + 'px';
+				this.food[0].style.backgroundColor = this.food[3];
+				this.food[0].style.position = 'absolute';
+				this.food[0].style.top = this.food[2] * this.block + 'px';
+				this.food[0].style.left = this.food[1] * this.block + 'px';
+				this.gameMap.appendChild(this.food[0]);
+			},
+			showSnake: function() {
+				//生成蛇
+				for(var i = 0; i < this.snake.length; i++){
+					//如果蛇的身体部分第一次生成则需要在页面创建一个新的div
+					if(this.snake[i][0] === null){
+						this.snake[i][0] = document.createElement('div');
+						this.snake[i][0].style.width = this.snake[i][0].style.height = this.block + 'px';
+						this.snake[i][0].style.backgroundColor = this.snake[i][3];
+						this.snake[i][0].style.position = 'absolute';
+						this.gameMap.appendChild(this.snake[i][0]);
+					}
+					//如果不是第一次只需要移动top和left的位置，不需要创建div
+					this.snake[i][0].style.top = this.snake[i][2] * this.block + 'px';
+					this.snake[i][0].style.left = this.snake[i][1] * this.block + 'px';
+				}
+			},
+			start: function() {
+				var that = this;
+				//游戏开始，开启定时器让蛇走起来
+				this.timer = setInterval(function(){
+					that.move();
+				},200);
+			},
+			move: function() {
+				//获取蛇的长度
+				var len = this.snake.length-1;
+				//对蛇进行移动，每次只移动蛇头，其他部分的新位置等于它下一个的旧位置
+				for(var i = 0; i < len; i++){
+					this.snake[i][1] = this.snake[i + 1][1];
+					this.snake[i][2] = this.snake[i + 1][2];
+				}
+				//判断蛇的方向
+				switch(this.dir){
+					case 'right':
+						this.snake[len][1]++;
+						break;
+					case 'down':
+						this.snake[len][2]++;
+						break;
+					case 'left':
+						this.snake[len][1]--;
+						break;
+					case 'up':
+						this.snake[len][2]--;
+						break;
+				}
+				//判断游戏是否碰到食物
+				if(this.snake[len][1] === this.food[1] && this.snake[len][2] === this.food[2]){
+					this.snake.unshift([null,this.snake[0][1],this.snake[0][2],this.snake[0][3]]);
+					this.gameMap.removeChild(this.food[0]);
+					this.showFood();
+				}
+				//判断游戏是否结束
+				this.gameOver();
+			},
+			pause: function() {
+				//清除定时器
+				clearInterval(this.timer);
+				//重置定时器返回值
+				game.timer = 0;
+			},
+			gameOver: function() {
+				var len = this.snake.length - 1;
+				//检查碰墙
+				if(this.snake[len][1] >= this.col || this.snake[len][2] >= this.row || this.snake[len][1]　<　0 ||  this.snake[len][2]　<　0 ){
+					clearInterval(this.timer);
+					alert('撞墙了，游戏结束！');
+					return;
+				}
+				//检查碰撞自己身体
+				for(var i = 0; i < len - 1; i++){
+					if(this.snake[len][1] === this.snake[i][1] && this.snake[len][2] === this.snake[i][2]){
+						clearInterval(this.timer);
+						alert('咬到自己了，游戏结束！');
+						return;
+					}
+				}
+				//没有over才能画蛇
+				this.showSnake();
+				//没有over结束本次操作，等待下一次键盘操作
+				this.isMove = true;
+			}
+		}
+		function keyDir(e){
+			//键盘被按下时判断上一次的按下操作是否已经完成
+			if(!game.isMove){
+				console.log(123);
+				return;
+			}
+			//本次按下后，在没有操作完成前禁止下一次操作，防止快速按键
+			game.isMove = false;
+			//监听方向键被按下
+			switch(e.keyCode){
+				case 38:
+					//当蛇头位置不为下时，才能向上转头
+					game.dir === 'down' ? game.dir = 'down' : game.dir = 'up';
+					break;
+				case 39:
+					//当蛇头位置不为左时，才能向右转头
+					game.dir === 'left' ? game.dir = 'left' : game.dir = 'right';
+					break;
+				case 40:
+					//当蛇头位置不为上时，才能向下转头
+					game.dir === 'up' ? game.dir = 'up' : game.dir = 'down';
+					break;
+				case 37:
+					//当蛇头位置不为右时，才能向左转头
+					game.dir === 'right' ? game.dir = 'right' : game.dir = 'left';
+					break;
+			}
+		}
+		function keyPause(e){
+			//监听空格键被按下
+			if(e.keyCode === 32){
+				//判断定时器当前状态
+				if(game.timer){
+					//如果定时器当前不为0时，说明游戏正在进行应当执行暂停操作
+					game.pause();
+					//暂停状态下需要清除监听事件     解除绑定
+					document.removeEventListener('keydown',keyDir);
+					return;
+				}
+				//如果定时器当前为0时，说明游戏正处于暂停状态应当执行开始操作
+				game.start();
+				//开始游戏状态下需要监听键盘事件      事件绑定
+				document.addEventListener('keydown',keyDir);
+			}
+		}
+		//new一个新游戏
+		var game = new Game(document);
+		//执行游戏开始
+		game.start();
+		//绑定键盘事件
+		document.addEventListener('keydown',keyDir);
+		document.addEventListener('keydown',keyPause);
+	</script>
+
+</html>
