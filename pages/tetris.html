@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>俄罗斯方块</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no">
+        <style>
+            /*          **页面样式设置**          */
+            *{margin: 0;padding: 0;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+            html{height: 100%;font-family: "Comic Sans MS","幼圆","黑体",sans-serif;overflow: hidden;}
+            body{height: 100%;background-color: #2a2a2a;overflow: hidden;text-align: center;}
+            table{border-collapse:collapse;overflow:hidden;display: inline-block;vertical-align:top;}
+            td{width: 20px;height: 20px;background: #181818;}
+            button{width: 50px;height: 30px;background: #00f;border:none;border-radius: 4px;color: #fff;margin-top: 20px;}
+            .gameContent{width: 320px;margin: 0 auto;position: relative;padding-top: 4px;}
+            .sidebar{display: inline-block;vertical-align:top;}
+            .logo{color: #fecf00;font-weight: bold;font-size: 20px;margin-top: 20px;}
+            .title{color: #7c8888;font-weight: bold;margin-top: 20px;}
+            #score{color: #fecf00;}
+            .controlBtn{width: 175px;height: 30px;margin: 0 auto;}
+            .controlBtn>button{margin-top: 5px;}
+            .left{float: left}
+            .right{float: right}
+            #gameOver{
+                        width: 180px;height: 80px;background: rgba(255,255,255,.8);border-radius: 4px;
+                        padding: 6px;position: absolute;top: 50%;left: 50%;transform: translate(-96px,-92px);display: none;
+                    }
+            .bgcolor{background: #181818;}
+            .bgImg1{background: url(blocks.png)no-repeat;background-position-x: 0px;}
+            .bgImg2{background: url(blocks.png)no-repeat;background-position-x: -20px;}
+            .bgImg3{background: url(blocks.png)no-repeat;background-position-x: -40px;}
+            .bgImg4{background: url(blocks.png)no-repeat;background-position-x: -60px;}
+            .bgImg5{background: url(blocks.png)no-repeat;background-position-x: -80px;}
+            .bgImg6{background: url(blocks.png)no-repeat;background-position-x: -100px;}
+            .bgImg7{background: url(blocks.png)no-repeat;background-position-x: -120px;}
+        </style>
+    </head>
+    <body>
+        <div class="gameContent">
+            <script type="text/javascript">
+                /*          **定义全局变量**
+                *   checkerboard棋盘数组-->整个游戏的显示部分
+                *   cells单元格数组-->棋盘里每个单元格的状态    0为空位    非0为 已占位
+                *   rows行数-->控制整个棋盘的行数
+                *   cols列数-->控制整个棋盘的列数
+                *   tetrisType俄罗斯方块样式-->随机一种俄罗斯方块的样式
+                *   blocks方块-->俄罗斯方块的一种样式
+                *   bgimg背景图-->每次产生俄罗斯方块的背景图
+                *   startX开始X坐标-->方块初始x坐标
+                *   startY开始Y坐标-->方块初始y坐标
+                *   timer定时器-->控制游戏的 开始 暂停 结束
+                *   millisec定时器时间-->控制方块下落速度
+                *   score-->得分
+                *   pause-->游戏暂停控制
+                */
+                var checkerboard =  new Array();
+                var cells = new Array();
+                var rows = 20;
+                var cols = 10;
+                var tetrisType = parseInt(Math.random()*7);
+                var nextColor = parseInt(Math.random()*6+1);
+                var bgimg = 0;
+                var startX = 0;
+                var startY = 0;
+                var blocks;
+                var timer;
+                var millisec = 600;
+                var score = 0;
+                var pause = false;
+                /*      **在页面生成游戏棋盘并初始化棋盘和单元格的数据**      */
+                (function(){
+                    var gameContent = document.getElementsByClassName("gameContent")[0];
+                    var table = document.createElement("table");
+                    table.setAttribute("border", "0");
+                    table.setAttribute("cellspacing", "0");
+                    table.setAttribute("cellpadding", "0");
+                    for(var i = 0; i < rows; i++){
+                        var tr = document.createElement("tr");
+                        checkerboard[i] =  new Array();
+                        cells[i] = new Array();
+                        for(var j = 0; j < cols; j++){
+                            var td = document.createElement("td");
+                            tr.appendChild(td);
+                            checkerboard[i][j] = td;
+                            cells[i][j] = 0;
+                        }
+                        table.appendChild(tr);
+                    }
+                    gameContent.appendChild(table);
+                })()
+            </script>
+            <div class="sidebar">
+                <div class="logo">TETRIS</div>
+                <div class="title">下一个</div>
+                <table id="nextBlock" border=0 cellspacing=0 cellpadding=0>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+                <div class="title">得分</div>
+                <div><span id="score">0</span></div>
+                <div><button ontouchstart="message();">重新</button></div>
+                <div><button id="play" ontouchstart="pauseGame();">暂停</button></div>
+            </div>
+            <p class="controlBtn"><button ontouchstart="moveRotate();">旋转</button></p>
+            <p class="controlBtn"><button class="left" ontouchstart="moveLeft();">左移</button><button class="right" ontouchstart="moveRight();">右移</button></p>
+            <p class="controlBtn"><button ontouchstart="fastDown();">落下</button></p>
+            <div id="gameOver">
+                <p>是否重新开始！</p>
+                <button ontouchstart="confirm();">确定</button>
+                <button ontouchstart="cancel();">取消</button>
+            </div>
+        </div>
+    </body>
+    <script type="text/javascript">        
+        function startGame(){
+            /*      **开始游戏**
+            *   初始化得分框
+            *   更新游戏地图
+            *   随机产生一个方块、随机方块颜色
+            *   初始化方块的起始坐标
+            *   开启定时器 自动落下
+            *   准备下一个方块
+            *   如果游戏开始就不能移动  说明游戏结束 gameOver
+            */
+            document.getElementById("score").innerHTML = score;
+            upDataGame();
+            blocks = createBlock();
+            bgimg = nextColor;
+            var w = 0;
+            for(var i = 0; i < blocks.length; i++){
+                if(w < blocks[i].length){
+                    w = blocks[i].length;
+                }
+            }
+            startX = parseInt((cols-w)/2);
+            startY = blocks.length*-1;
+            var is = isValid(blocks,startX,startY+1);
+            if(!is){
+                message();
+                return;
+            }
+            timer = setInterval(function(){
+                moveDown();
+            },millisec);
+            nextBlock();
+        }
+        function nextBlock(){
+            /*      **右侧提示信息栏**
+            *   tetrisType-->确定下一个俄罗斯方块的形状
+            *   nextColor-->下一个俄罗斯方块的颜色
+            *   显示在右侧信息框
+            */
+            if(pause){
+                return;
+            }
+            tetrisType = parseInt(Math.random()*7);
+            nextColor = parseInt(Math.random()*6+1);
+            nextBlocks = createBlock();            
+            var tr = document.getElementById("nextBlock").getElementsByTagName("tr");
+            var nextBlock=[];
+            for(var i = 0; i < tr.length; i++){
+                nextBlock[i]=[];
+                var td = tr[i].getElementsByTagName("td");
+                for(var j = 0; j < td.length; j++){
+                    nextBlock[i][j] = td[j];
+                }
+            }
+            for(var i = 0; i < nextBlock.length; i++){
+                for(var j = 0; j < nextBlock[i].length; j++){
+                    nextBlock[i][j].className = "bgcolor";
+                }
+            }            
+            for(var i = 0; i < nextBlocks.length; i++){
+                for(var j = 0; j < nextBlocks[i].length; j++){
+                    if(nextBlocks[i][j]){
+                        nextBlock[i][j].className = "bgImg" + nextColor;
+                    }
+                }
+            }
+        }
+        function isRemove(){
+            /*      **整行消除**
+            *   遍历单元格状态的数组  如果整行都不为 0   即整行都被占满   即消除
+            *   splice(i,1)删除已占满的所在行  并向数组的  头部添加一个  全0的数组
+            *   根据一次消掉的行数不同  给的分值也不同
+            */            
+            if(pause){
+                return;
+            }
+            var remove = true;
+            var record = [];
+            for(var i = rows-1; i >= 0; i--){
+                for(var j = 0; j < cols; j++){
+                    if(!cells[i][j]){
+                        remove = false;
+                        break;                        
+                    }
+                }
+                if(remove){
+                    record.push(i)
+                }
+                remove = true;
+            }
+            for(var i = 0; i < record.length; i++){
+                cells.splice(record[i]+i,1);
+                var tmp = [];
+                for(var k = 0; k < cols; k++){
+                    tmp[k] = 0;
+                }
+                cells.unshift(tmp);
+            }
+            var num = record.length;
+            if(num){
+                switch(num){
+                    case 1:
+                        score += 50;
+                        break;
+                    case 2:
+                        score += 150;
+                        break;
+                    case 3:
+                        score += 250;
+                        break;
+                    case 4:
+                        score += 400;
+                        break;
+                }
+            }
+        }
+        function fastDown(){
+            /*      **快速落下**
+            *   清除原来的定时器
+            *   重新开启定时器 并把间隔时间减短实现快速落下
+            **/
+            if(pause){
+                return;
+            }
+            clearInterval(timer);
+            timer = setInterval(function(){
+                moveDown();
+            },10);
+        }
+        function moveRotate(){
+           /*      **旋转操作**
+            *   方块旋转即blocks数组行和列互换，临时变量tmp 存储互换后的值
+            *   通过isValid(tmp,startX,startY);判断是否可以移动
+            *   旋转是暂停方块落下
+            *   每次移动都要 刷新棋盘显示数据upDataGame();
+            *   执行移动操作 moveBlock();
+            */
+            if(pause){
+                return;
+            }
+            var tmp = new Array();
+            for(var i = 0; i <　blocks[0].length; i++){
+                tmp[i] = new Array();
+                for(var j = 0; j <　blocks.length; j++){
+                    tmp[i][j] = blocks[blocks.length-1-j][i];
+                }
+            }       
+            var is = isValid(tmp,startX,startY);
+            if(is){
+                clearInterval(timer);
+                blocks = tmp;
+                upDataGame();
+                moveBlock();
+                timer = setInterval(function(){
+                    moveDown();
+                },millisec);
+            }
+        }
+        function moveRight(){
+            /*      **左移操作**
+            *   方块左移即startX+1，通过isValid(blocks,startX+1,startY)判断是否可以移动
+            *   如果可以  即startX++;
+            *   每次移动都要 刷新棋盘显示数据upDataGame();
+            *   执行移动操作 moveBlock();
+            */
+            if(pause){
+                return;
+            }
+            var is = isValid(blocks,startX+1,startY);
+            if(is){
+                startX++;
+                upDataGame();
+                moveBlock();
+            }
+        }
+        function moveLeft(){
+            /*      **左移操作**
+            *   方块左移即startX-1，通过isValid(blocks,startX-1,startY)判断是否可以移动
+            *   如果可以  即startX--;
+            *   每次移动都要 刷新棋盘显示数据upDataGame();
+            *   执行移动操作 moveBlock();
+            */
+            if(pause){
+                return;
+            }
+            var is = isValid(blocks,startX-1,startY);
+            if(is){
+                startX--;
+                upDataGame();
+                moveBlock();
+            }
+        }
+        function moveDown(){
+            /*      **方块落下**
+            *   方块落下即startY值+1，通过isValid(blocks,startX,startY+1)判断是否可以移动
+            *   如果可以  即startY++;
+            *   每次移动都要 刷新棋盘显示数据upDataGame();
+            *   执行移动操作 moveBlock();
+            *   判断是否到底 isBottom();
+            */
+            if(pause){
+                return;
+            }
+            var is = isValid(blocks,startX,startY+1);
+            if(is){
+                startY++;
+                upDataGame();
+                moveBlock();
+            }
+            else{
+                clearInterval(timer);
+                for(var i = 0; i < blocks.length; i++){
+                    for(var j = 0; j < blocks[i].length; j++){
+                        if(startY+i>=0){
+                            if(blocks[i][j]){
+                                cells[i+startY][j+startX] = bgimg;
+                            }
+                        }
+                    }
+                }
+                isRemove();
+                startGame();
+            }
+        }
+        function isValid(blocks,x,y){
+            /*      **有效值判断，判断是否可以移动**
+            *   如果x+j<0说明已经到最左侧则不能再往左移动;
+            *   如果y+i>rows-1即y值加上当前俄罗斯方块的行数是否到底  到最底部则不能再移动;
+            *   同理如果x+j>cols-1即x值加上当前俄罗斯方块列数是否最右 到最右侧则不能再往右移动
+            *   如果cells[i+y][j+x]不为false即不为0时 说明当前位置已经被占用 则不能移动
+            *   y+i<0时 不对单元格状态 判断
+            */
+            if(pause){
+                return;
+            }
+            for(var i = 0; i < blocks.length; i++){
+                for(var j = 0; j < blocks[i].length; j++){
+                    if(blocks[i][j]){
+                        if(x+j<0||y+i>rows-1||x+j>cols-1){
+                            return false;
+                        }
+                        if(y+i>=0){
+                            if(cells[i+y][j+x]){
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+        function moveBlock(){
+            /*      **移动方块**
+            *   遍历blocks, blocks里的每一个小方块  加上startX和startY的值  确定在棋盘上显示的位置
+            *   游戏刚开始 方块从最顶端落下时 逐块下落 所以startY值刚开始  为负值
+            *   bgimg-->根据bgimg的值来确定    棋盘上小方块的图片
+            */
+            if(pause){
+                return;
+            }
+             for(var i = 0; i < blocks.length; i++){
+                for(var j = 0; j < blocks[i].length; j++){
+                    if(startY+i>=0){
+                        if(blocks[i][j]){
+                            checkerboard[i+startY][j+startX].className = "bgImg" + bgimg;
+                        }                        
+                    }
+                }
+            }
+        }
+        function createBlock(){
+            /*          **随机产生一个方块**
+            *   俄罗斯方块仓库  一共七种形状  
+            *   根据随机数tetrisType返回一种俄罗斯方块的形状
+            */
+            if(pause){
+                return;
+            }
+         var tetris = [
+                [[0,1,0],[0,1,1],[0,1,0]],
+                [[0,1,0],[0,1,1],[0,0,1]],
+                [[0,0,1],[0,1,1],[0,1,0]],
+                [[0,1,0],[0,1,0],[0,1,1]],
+                [[0,1,0],[0,1,0],[0,1,1]],
+                [[0,1,0],[0,1,0],[0,1,0],[0,1,0]],
+                [[0,1,1,0],[0,1,1,0]]
+             ];
+         return tetris[tetrisType];
+        }
+        function upDataGame(){
+            /*      **刷新游戏数据**
+            *   bgImg-->占用时要显示的背景样式   bgcolor-->空时要显示的背景样式
+            *   对所有单元格状态遍历
+            *   当cells[i][j]不为0时 说明此位置被占用  根据cells[i][j]的值 来确定棋盘checkerboard[i][j]需要显示的背景样式
+            *   当cells[i][j]为0时 说明此位置为空  棋盘checkerboard[i][j]显示背景的颜色
+            */
+            if(pause){
+                return;
+            }
+            for(var i = 0; i < rows; i++){
+                for(var j = 0; j < cols; j++){
+                    if(cells[i][j]){
+                        checkerboard[i][j].className = "bgImg" + cells[i][j];
+                    }
+                    else{
+                        checkerboard[i][j].className = "bgcolor";
+                    }
+                }
+            }
+        }
+        function gameOver(){
+            /*      **游戏结束操作**
+            *   单元格状态  清空为0
+            *   去掉暂停状态
+            *   清空分数
+            *   关掉定时器并重新开始游戏
+            */
+            for(var i = 0; i < rows; i++){
+                for(var j = 0; j < cols; j++){
+                    cells[i][j] = 0;
+                }
+            }
+            clearInterval(timer);
+            pause = false;
+            score = 0;
+            upDataGame();
+            startGame();
+        }
+        function message(){
+            /*        **弹框信息显示**
+            *   当游戏结束或者点击重新开始是显示此信息框
+            *   显示提示信息框是暂停游戏   
+            */
+            document.getElementById("gameOver").style.display = "block";
+            pauseGame();
+        }
+        function cancel(){
+            /*      **游戏信息弹框取消按钮被点击**
+            *   隐藏信息提示弹框
+            *   并继续游戏
+            */
+            document.getElementById("gameOver").style.display = "none";
+        }
+        function confirm(){
+            /*      **游戏信息弹框确定按钮被点击**
+            *   隐藏信息提示弹框
+            *   并结束当前游戏并重新开始
+            */
+            document.getElementById("gameOver").style.display = "none";
+            gameOver();
+        }
+        function pauseGame(){
+            /*      **暂停控制**
+            */
+            if(pause){
+                pause = false;
+                document.getElementById("play").innerHTML = "暂停";
+                timer = setInterval(function(){
+                    moveDown();
+                },millisec); 
+            }
+            else{
+                pause = true;
+                document.getElementById("play").innerHTML = "继续";
+                clearInterval(timer);
+            }
+        }
+        startGame();
+        document.onkeydown=function(event){
+            var e = event || window.event || arguments.callee.caller.arguments[0];
+            if(e && e.keyCode==40){
+                fastDown();
+            }
+            if(e && e.keyCode==37){
+                moveLeft();
+            }            
+            if(e && e.keyCode==39){
+                moveRight();
+            }
+            if(e && e.keyCode==38){
+                moveRotate();
+            }
+            if(e && e.keyCode==32){
+                pauseGame();
+            }
+        };
+    </script>
+</html>
